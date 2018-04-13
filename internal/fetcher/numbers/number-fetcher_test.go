@@ -23,9 +23,8 @@ func TestNumberFetcher(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{"numbers": []int{2, 3, 5, 7, 11, 13}})
 		}))
 
-		client := http.Client{Transport: &http.Transport{}}
 		fetcher := NumberFetcher{
-			Requester: request.Requester{Client: client},
+			Requester: request.Requester{Tr: &http.Transport{}},
 		}
 
 		numbers := fetcher.Fetch(server.URL)
@@ -39,9 +38,8 @@ func TestNumberFetcher(t *testing.T) {
 	t.Run("Returning an error on request", func(t *testing.T) {
 		numbersExpecteds := &entity.Numbers{}
 
-		client := http.Client{Transport: &http.Transport{}}
 		fetcher := NumberFetcher{
-			Requester: request.Requester{Client: client},
+			Requester: fakeRequest{},
 		}
 
 		numbers := fetcher.Fetch("doesnt matters")
@@ -59,3 +57,4 @@ type fakeRequest struct {
 func (f fakeRequest) DoRequest(string) (*http.Response, error) {
 	return nil, errors.New("New error")
 }
+func (f fakeRequest) CancelRequest() {}
