@@ -1,5 +1,5 @@
 package entity
 
 type Numbers struct {
-	Numbers []int `json:"Numbers"`
+	Numbers []int `json:"numbers"`
 }
