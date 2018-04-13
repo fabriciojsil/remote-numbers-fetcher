@@ -1,4 +1,4 @@
-package numberfetcher
+package fetcher
 
 import (
 	"encoding/json"
