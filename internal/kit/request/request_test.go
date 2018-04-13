@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestRequest(t *testing.T) {
@@ -46,8 +47,7 @@ func TestRequest(t *testing.T) {
 
 	t.Run("Nonexistent URL", func(t *testing.T) {
 
-		client := http.Client{Transport: &http.Transport{}}
-		requester := Requester{Client: client}
+		requester := Requester{Tr: &http.Transport{}}
 		_, err := requester.DoRequest("https://localhost/inexistent")
 
 		if err == nil {
@@ -57,19 +57,34 @@ func TestRequest(t *testing.T) {
 
 	t.Run("Invalid URL", func(t *testing.T) {
 
-		client := http.Client{Transport: &http.Transport{}}
-		requester := Requester{Client: client}
+		requester := Requester{Tr: &http.Transport{}}
 		_, err := requester.DoRequest("localhost/")
 
 		if err == nil {
 			t.Errorf("It must thrown an error %s ", err)
 		}
 	})
+
+	t.Run("Canceling a reqest", func(t *testing.T) {
+		wasCalled := false
+		fakeHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(time.Duration(10) * time.Millisecond)
+			wasCalled = true
+			w.Write([]byte("body response"))
+		})
+
+		requester, url := createRequest(fakeHandler)
+
+		go requester.DoRequest(url)
+		requester.CancelRequest()
+		if wasCalled == true {
+			t.Errorf("It doenst be caller %v ", wasCalled)
+		}
+	})
+
 }
 
 func createRequest(handler http.HandlerFunc) (Requester, string) {
 	w := httptest.NewServer(handler)
-	client := http.Client{Transport: &http.Transport{}}
-
-	return Requester{Client: client}, w.URL
+	return Requester{Tr: &http.Transport{}}, w.URL
 }
