@@ -1,4 +1,4 @@
-package fetcher
+package numberfetcher
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ func TestNumberFetcher(t *testing.T) {
 	})
 
 	t.Run("Returning an error on request", func(t *testing.T) {
-		numbersExpecteds := &entity.Numbers{}
+		numbersExpecteds := &entity.Numbers{Numbers: []int{}}
 
 		fetcher := NumberFetcher{
 			Requester: fakeRequest{},

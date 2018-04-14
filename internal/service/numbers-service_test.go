@@ -1,4 +1,4 @@
-package numberservice
+package service
 
 import (
 	"encoding/json"
@@ -8,8 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabriciojsil/remote-numbers-fetcher/internal/entity"
-	"github.com/fabriciojsil/remote-numbers-fetcher/internal/fetcher/numbers"
+	"github.com/fabriciojsil/remote-numbers-fetcher/internal/fetcher/numberfetcher"
 	"github.com/fabriciojsil/remote-numbers-fetcher/internal/kit/request"
 )
 
@@ -22,13 +21,13 @@ func TestNumbersService(t *testing.T) {
 		}))
 
 		writer := httptest.NewRecorder()
-		presenter := fakePresenter{writer: writer}
+		presenter := FakePresenter{Writer: writer}
 		requester := request.Requester{Tr: &http.Transport{}}
-		fetcher := fetcher.NumberFetcher{Requester: requester}
+		fetcher := numberfetcher.NumberFetcher{Requester: requester}
 
-		service := newNumberService(fetcher, presenter)
+		service := NewNumberService(fetcher, presenter)
 
-		service.Run([]string{server.URL})
+		service.Run([]string{server.URL + "?req=1", server.URL + "?req=2"})
 
 		res := writer.Result()
 		defer res.Body.Close()
@@ -36,17 +35,8 @@ func TestNumbersService(t *testing.T) {
 		bodyString := string(body)
 
 		if !reflect.DeepEqual(bodyString, expectedBody) {
-			t.Errorf("Expected %v | Actual %v", bodyString, expectedBody)
+			t.Errorf("Expected %v | Actual %v", expectedBody, bodyString)
 		}
 
 	})
-}
-
-type fakePresenter struct {
-	writer http.ResponseWriter
-}
-
-func (f fakePresenter) Present(numbers *entity.Numbers) {
-	res, _ := json.Marshal(numbers)
-	f.writer.Write(res)
 }
