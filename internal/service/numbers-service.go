@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,6 +19,7 @@ type NumberService struct {
 	sync.RWMutex
 }
 
+// Run perform a Service responsible to make multiple request to diferent endpoints.
 func (n *NumberService) Run(urls []string, ticker *time.Ticker) {
 	n.fetchMultiple(urls, ticker)
 }
@@ -49,6 +51,11 @@ func (n *NumberService) isTimesUP() bool {
 }
 
 func (n *NumberService) setTimeout(ticker *time.Ticker, ch chan *entity.Numbers) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("I don't like this, but it is to prevent close a channel closed", r)
+		}
+	}()
 	for {
 		select {
 		case _ = <-ticker.C:
