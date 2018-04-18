@@ -1,4 +1,4 @@
-package numberfetcher
+package fetcher
 
 import (
 	"encoding/json"
@@ -27,7 +27,7 @@ func TestNumberFetcher(t *testing.T) {
 			Requester: request.Requester{Tr: &http.Transport{}},
 		}
 
-		numbers := fetcher.Fetch(server.URL)
+		numbers, _ := fetcher.Fetch(server.URL)
 
 		if !reflect.DeepEqual(numbersExpecteds, numbers) {
 			t.Errorf("Expected %v | Actual %v", numbersExpecteds, numbers)
@@ -36,16 +36,15 @@ func TestNumberFetcher(t *testing.T) {
 	})
 
 	t.Run("Returning an error on request", func(t *testing.T) {
-		numbersExpecteds := &entity.Numbers{Numbers: []int{}}
-
+		expectedError := errors.New("New error")
 		fetcher := NumberFetcher{
 			Requester: fakeRequest{},
 		}
 
-		numbers := fetcher.Fetch("doesnt matters")
+		_, err := fetcher.Fetch("doesnt matters")
 
-		if !reflect.DeepEqual(numbersExpecteds, numbers) {
-			t.Errorf("Expected %v | Actual %v", numbersExpecteds, numbers)
+		if !reflect.DeepEqual(expectedError, err) {
+			t.Errorf("Expected %v | Actual %v", err, expectedError)
 		}
 	})
 

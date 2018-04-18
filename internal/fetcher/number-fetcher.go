@@ -1,4 +1,4 @@
-package numberfetcher
+package fetcher
 
 import (
 	"encoding/json"
@@ -14,14 +14,14 @@ type NumberFetcher struct {
 }
 
 //Fetch retrieves Numbers from an endpoit
-func (n NumberFetcher) Fetch(url string) *entity.Numbers {
+func (n NumberFetcher) Fetch(url string) (*entity.Numbers, error) {
 	numbers := &entity.Numbers{Numbers: []int{}}
 	res, err := n.Requester.DoRequest(url)
 	if err != nil {
-		return numbers
+		return nil, err
 	}
 	n.unmarshalNumbers(res, numbers)
-	return numbers
+	return numbers, nil
 }
 
 func (n NumberFetcher) unmarshalNumbers(res *http.Response, numbers *entity.Numbers) {

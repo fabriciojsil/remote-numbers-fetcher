@@ -10,7 +10,7 @@ func Test(t *testing.T) {
 		expected := []int{1, 2, 3}
 
 		numbers := []int{3, 2, 1, 1, 2, 3}
-		result := OrderToRemoveDuplicates(numbers)
+		result := SortAndRemoveDuplicatesNumbers(numbers)
 
 		if !reflect.DeepEqual(expected, result) {
 			t.Errorf("Expected %v | Actual %v", expected, result)
@@ -21,7 +21,7 @@ func Test(t *testing.T) {
 		expected := []int{1, 2, 3}
 
 		numbers := []int{3, 2, 1}
-		result := OrderToRemoveDuplicates(numbers)
+		result := SortAndRemoveDuplicatesNumbers(numbers)
 
 		if !reflect.DeepEqual(expected, result) {
 			t.Errorf("Expected %v | Actual %v", expected, result)
@@ -32,7 +32,7 @@ func Test(t *testing.T) {
 		expected := []int{2}
 
 		numbers := []int{2}
-		result := OrderToRemoveDuplicates(numbers)
+		result := SortAndRemoveDuplicatesNumbers(numbers)
 
 		if !reflect.DeepEqual(expected, result) {
 			t.Errorf("Expected %v | Actual %v", expected, result)

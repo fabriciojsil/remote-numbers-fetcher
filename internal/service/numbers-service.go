@@ -1,9 +1,8 @@
 package service
 
 import (
-	"encoding/json"
-	"net/http"
 	"sync"
+	"time"
 
 	"github.com/fabriciojsil/remote-numbers-fetcher/internal/entity"
 	"github.com/fabriciojsil/remote-numbers-fetcher/internal/fetcher"
@@ -11,56 +10,87 @@ import (
 	"github.com/fabriciojsil/remote-numbers-fetcher/internal/presenter"
 )
 
-type numberService struct {
-	Fetcher   fetcher.Fetcher
-	Presenter presenter.Presenter
-	result    entity.Numbers
-	sync.Mutex
+type NumberService struct {
+	Presenter     *presenter.NumberPresenter
+	Fetcher       *fetcher.NumberFetcher
+	result        *entity.Numbers
+	closedChannel bool
+	sync.RWMutex
 }
 
-func (n *numberService) Run(urls []string) {
-	n.fetchMultiple(urls)
-	n.Presenter.Present(n.result)
+func (n *NumberService) Run(urls []string, ticker *time.Ticker) {
+	n.fetchMultiple(urls, ticker)
 }
 
-func (n *numberService) addResult(num *entity.Numbers) {
+func (n *NumberService) fetchsSingle(url string, ch chan *entity.Numbers) {
+	numbers, err := n.Fetcher.Fetch(url)
+	if err == nil && !n.isTimesUP() {
+		ch <- numbers
+	}
+}
+
+func (n *NumberService) addResult(num *entity.Numbers) {
 	n.Lock()
-	n.result.Numbers = slice.OrderToRemoveDuplicates(append(n.result.Numbers, num.Numbers...))
+	n.result.Numbers = slice.SortAndRemoveDuplicatesNumbers(append(n.result.Numbers, num.Numbers...))
+	n.Presenter.Parse(n.result)
 	n.Unlock()
 }
 
-func (n *numberService) fetchInRoutines(url string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	n.addResult(n.Fetcher.Fetch(url))
+func (n *NumberService) timesUP(up bool) {
+	n.Lock()
+	defer n.Unlock()
+	n.closedChannel = up
 }
 
-func (n *numberService) fetchMultiple(urls []string) {
-	waitGroup := new(sync.WaitGroup)
-	in := make(chan string, len(urls))
+func (n *NumberService) isTimesUP() bool {
+	n.RLock()
+	defer n.RUnlock()
+	return n.closedChannel
+}
+
+func (n *NumberService) setTimeout(ticker *time.Ticker, ch chan *entity.Numbers) {
+	for {
+		select {
+		case _ = <-ticker.C:
+			if !n.isTimesUP() {
+				ticker.Stop()
+				n.timesUP(true)
+				close(ch)
+				n.Fetcher.Requester.CancelRequest()
+			}
+		}
+	}
+}
+
+func (n *NumberService) fetchMultiple(urls []string, ticker *time.Ticker) {
+	counter := len(urls)
+	ch := make(chan *entity.Numbers, len(urls))
 
 	for _, url := range urls {
-		waitGroup.Add(1)
-		go n.fetchInRoutines(url, waitGroup)
-		in <- url
+		go n.fetchsSingle(url, ch)
 	}
-	close(in)
-	waitGroup.Wait()
-}
 
-func NewNumberService(f fetcher.Fetcher, p presenter.Presenter) numberService {
-	return numberService{
-		Fetcher:   f,
-		Presenter: p,
-		result:    entity.Numbers{Numbers: []int{}},
+	go n.setTimeout(ticker, ch)
+
+	for r := range ch {
+		counter--
+		n.addResult(r)
+		if counter <= 0 && !n.isTimesUP() {
+			n.timesUP(true)
+			ticker.Stop()
+			close(ch)
+			break
+		}
 	}
+	n.Presenter.AddHeader("Content-Type", "application/json")
+	n.Presenter.Present()
 }
 
-type FakePresenter struct {
-	Writer http.ResponseWriter
-}
-
-func (f FakePresenter) Present(numbers entity.Numbers) {
-	f.Writer.Header().Add("Content-Type", "application/json")
-	res, _ := json.Marshal(numbers)
-	f.Writer.Write(res)
+func NewNumberService(p *presenter.NumberPresenter, f *fetcher.NumberFetcher) *NumberService {
+	return &NumberService{
+		Presenter:     p,
+		Fetcher:       f,
+		result:        &entity.Numbers{Numbers: []int{}},
+		closedChannel: false,
+	}
 }

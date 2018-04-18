@@ -4,7 +4,7 @@ import "sort"
 
 type Unique struct{}
 
-func OrderToRemoveDuplicates(numbers []int) (result []int) {
+func SortAndRemoveDuplicatesNumbers(numbers []int) (result []int) {
 	result = []int{}
 	sort.Sort(sort.IntSlice(numbers))
 	for i, number := range numbers {
